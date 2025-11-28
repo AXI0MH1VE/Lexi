@@ -1,0 +1,11 @@
+[package]
+name = "bark-protocol"
+version = "3.1.0"
+name = "lex-wth"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+bark-protocol = { path = "../../shared/communication" }
+serde_json = "1.0"
