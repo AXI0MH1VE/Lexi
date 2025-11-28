@@ -1,163 +1,128 @@
-use shared::communication::bark_protocol::BARKProtocol;
-use shared::state::mamba_state::MambaState;
-use anyhow::Result;
-use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use tracing::{info, warn, error};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+//! LEX-KIN Node - Kinship and Social Relationship Management
+//!
+//! This node handles social relationship management, network analysis, and kinship tracking.
+//! It responds to BARK Protocol directives for social analysis and relationship management.
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct KinshipMetrics {
-    pub relationship_strength: f64,
-    pub trust_coefficient: f64,
-    pub collaboration_score: f64,
-    pub harmony_index: f64,
-    pub empathy_level: f64,
-}
+use bark_protocol::{
+    BarkDirective, BarkResponse, DirectiveKind, TargetNode, ResponseStatus
+};
+use chrono::Utc;
+use serde_json::json;
+use std::io::{self, Read};
+use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct KinshipDirective {
-    pub directive_type: String,
-    pub target_entity: String,
-    pub relationship_action: String,
-    pub parameters: serde_json::Value,
-}
-
-pub struct LEXKINNode {
-    id: String,
-    state: Arc<RwLock<MambaState>>,
-    bark_protocol: Arc<RwLock<BARKProtocol>>,
-    kinship_metrics: Arc<RwLock<KinshipMetrics>>,
-}
-
-impl LEXKINNode {
-    pub fn new() -> Self {
-        info!("[LEX-KIN] Initializing Kinship/Relationship Management Node...");
-        
-        Self {
-            id: "LEX-KIN".to_string(),
-            state: Arc::new(RwLock::new(MambaState::new())),
-            bark_protocol: Arc::new(RwLock::new(BARKProtocol::new())),
-            kinship_metrics: Arc::new(RwLock::new(KinshipMetrics {
-                relationship_strength: 0.85,
-                trust_coefficient: 0.92,
-                collaboration_score: 0.78,
-                harmony_index: 0.89,
-                empathy_level: 0.87,
-            })),
-        }
-    }
-
-    pub async fn process_kinship_directive(&self, directive: KinshipDirective) -> Result<()> {
-        info!("[LEX-KIN] Processing kinship directive: {:?}", directive);
-        
-        // Update relationship metrics based on directive
-        let mut metrics = self.kinship_metrics.write().await;
-        
-        match directive.directive_type.as_str() {
-            "BUILD_TRUST" => {
-                metrics.trust_coefficient = (metrics.trust_coefficient + 0.05).min(1.0);
-                info!("[LEX-KIN] Trust coefficient updated: {}", metrics.trust_coefficient);
-            }
-            "STRENGTHEN_BONDS" => {
-                metrics.relationship_strength = (metrics.relationship_strength + 0.03).min(1.0);
-                metrics.harmony_index = (metrics.harmony_index + 0.02).min(1.0);
-                info!("[LEX-KIN] Relationship strength enhanced");
-            }
-            "FACILITATE_COLLABORATION" => {
-                metrics.collaboration_score = (metrics.collaboration_score + 0.07).min(1.0);
-                info!("[LEX-KIN] Collaboration metrics improved");
-            }
-            "EMPATHY_BOOST" => {
-                metrics.empathy_level = (metrics.empathy_level + 0.04).min(1.0);
-                info!("[LEX-KIN] Empathy level enhanced");
-            }
-            _ => {
-                warn!("[LEX-KIN] Unknown kinship directive type: {}", directive.directive_type);
-            }
-        }
-
-        // Broadcast updated metrics to network
-        let bark = self.bark_protocol.read().await;
-        let metrics_json = serde_json::to_string(&*metrics)?;
-        bark.broadcast_directive("LEX-KIN", "NETWORK", "KINSHIP_UPDATE", &metrics_json).await?;
-
-        Ok(())
-    }
-
-    pub async fn get_kinship_status(&self) -> Result<KinshipMetrics> {
-        let metrics = self.kinship_metrics.read().await;
-        Ok(metrics.clone())
-    }
-
-    pub async fn process_state_update(&self) -> Result<()> {
-        let mut state = self.state.write().await;
-        
-        // Apply Mamba-SSM deterministic processing
-        let kinship_data = self.get_kinship_status().await?;
-        state.update_deterministic_state("kinship_metrics", &kinship_data)?;
-        
-        info!("[LEX-KIN] State updated with kinship metrics");
-        Ok(())
-    }
-}
+const NODE_SIGIL: &str = "srp://alexis/lex-kin";
 
 #[tokio::main]
-async fn main() -> Result<()> {
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::fmt::layer())
-        .with(tracing_subscriber::EnvFilter::from_default_env())
-        .init();
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!("[LEX-KIN] 👥 Node online. Kinship management active.");
+    println!("[LEX-KIN] 📡 Awaiting directives on BARK Protocol v3.1...");
+    println!("[LEX-KIN] 🔐 Node Sigil: {}", NODE_SIGIL);
 
-    info!("=== LEX-KIN KINSHIP NODE INITIALIZATION ===");
-    info!("Node: Kinship/Relationship Management");
-    info!("Protocol: BARK v3.1 with Ed25519 signatures");
-    info!("Processing: Mamba-SSM deterministic state management");
-    
-    let node = LEXKINNode::new();
-    
-    // Simulate kinship processing
-    tokio::spawn(async move {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(5));
-        
-        loop {
-            interval.tick().await;
-            
-            if let Err(e) = node.process_state_update().await {
-                error!("[LEX-KIN] State update error: {}", e);
+    // Start the node's main loop
+    start_kinship_management().await?;
+
+    Ok(())
+}
+
+async fn start_kinship_management() -> Result<(), Box<dyn std::error::Error>> {
+    loop {
+        // Listen for incoming directives
+        println!("[LEX-KIN] 🎧 Listening for directives...");
+
+        let mut buffer = String::new();
+        if io::stdin().read_line(&mut buffer).is_ok() {
+            if let Ok(trimmed) = serde_json::from_str::<BarkDirective>(&buffer.trim()) {
+                println!("[LEX-KIN] 📨 Received directive: {} (Kind: {:?})",
+                    trimmed.request_id, trimmed.kind);
+
+                let response = process_directive(trimmed).await?;
+                let response_json = serde_json::to_string(&response)?;
+
+                println!("[LEX-KIN] 📤 Sending response: {}", response_json);
+                println!("[LEX-KIN] ✅ Response sent successfully");
+            } else {
+                println!("[LEX-KIN] ❌ Failed to parse directive");
             }
         }
-    });
 
-    // Example kinship directives
-    let test_directives = vec![
-        KinshipDirective {
-            directive_type: "BUILD_TRUST".to_string(),
-            target_entity: "LEX-VIT".to_string(),
-            relationship_action: "strengthen".to_string(),
-            parameters: serde_json::json!({"intensity": 0.8}),
-        },
-        KinshipDirective {
-            directive_type: "FACILITATE_COLLABORATION".to_string(),
-            target_entity: "LEX-ENT".to_string(),
-            relationship_action: "coordinate".to_string(),
-            parameters: serde_json::json!({"scope": "strategic_planning"}),
-        },
-    ];
+        // Small delay between processing directives
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+    }
+}
 
-    for directive in test_directives {
-        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-        if let Err(e) = node.process_kinship_directive(directive).await {
-            error!("[LEX-KIN] Directive processing error: {}", e);
-        }
+async fn process_directive(directive: BarkDirective) -> Result<BarkResponse, Box<dyn std::error::Error>> {
+    println!("[LEX-KIN] 🔍 Processing directive from: {}", directive.caller_sigil);
+
+    // Verify directive authenticity (placeholder implementation)
+    if let Err(e) = directive.verify_signature() {
+        println!("[LEX-KIN] ⚠️ Signature verification failed: {}", e);
+        return Ok(BarkResponse::failure(
+            directive.request_id,
+            TargetNode::LexKin,
+            format!("Signature verification failed: {}", e),
+        ));
     }
 
-    info!("[LEX-KIN] Kinship node operational - maintaining relationship networks");
-    
-    // Keep the node running
-    tokio::signal::ctrl_c().await?;
-    info!("[LEX-KIN] Shutdown signal received");
-    
-    Ok(())
+    // Process based on directive kind
+    match directive.kind {
+        DirectiveKind::ANALYZE => {
+            analyze_social_network(directive).await
+        },
+        DirectiveKind::GENERATE => {
+            generate_relationship_report(directive).await
+        },
+        _ => {
+            Ok(BarkResponse::failure(
+                directive.request_id,
+                TargetNode::LexKin,
+                format!("Unsupported directive kind: {:?}", directive.kind),
+            ))
+        }
+    }
+}
+
+async fn analyze_social_network(directive: BarkDirective) -> Result<BarkResponse, Box<dyn std::error::Error>> {
+    println!("[LEX-KIN] 📊 Analyzing social network...");
+
+    // Placeholder social analysis
+    let analysis = json!({
+        "network_analysis": "completed",
+        "connections_count": 42,
+        "relationship_strength": "strong",
+        "communication_patterns": "active",
+        "recommendations": ["strengthen_weak_ties", "increase_engagement"],
+        "timestamp": Utc::now()
+    });
+
+    println!("[LEX-KIN] 🔗 Social network analysis complete.");
+
+    Ok(BarkResponse::success(
+        directive.request_id,
+        TargetNode::LexKin,
+        analysis,
+    ))
+}
+
+async fn generate_relationship_report(directive: BarkDirective) -> Result<BarkResponse, Box<dyn std::error::Error>> {
+    println!("[LEX-KIN] 📋 Generating relationship report...");
+
+    // Placeholder report
+    let report = json!({
+        "report_type": "kinship_summary",
+        "period": "monthly",
+        "key_relationships": [
+            {"contact": "family", "strength": "very_strong", "last_interaction": "recent"},
+            {"contact": "close_friends", "strength": "strong", "last_interaction": "recent"},
+            {"contact": "colleagues", "strength": "moderate", "last_interaction": "recent"}
+        ],
+        "action_items": ["schedule_family_call", "plan_social_event"],
+        "generated_at": Utc::now()
+    });
+
+    Ok(BarkResponse::success(
+        directive.request_id,
+        TargetNode::LexKin,
+        report,
+    ))
 }
