@@ -1,0 +1,18 @@
+:root {
+  color-scheme: dark;
+  background-color: #01030a;
+  color: #f5f7ff;
+  font-family: "Space Grotesk", "Sora", "Inter", system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body,
+html,
+#root {
+  margin: 0;
+  height: 100%;
+  background: radial-gradient(circle at 20% 20%, #0c162a 0%, #03060d 45%, #01030a 100%);
+}

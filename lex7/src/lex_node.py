@@ -1,0 +1,92 @@
+import torch
+from mamba_ssm import Mamba
+import yaml
+import logging
+
+class LexNode:
+    """
+    LEX-MAMBA Node: Error-State Lattice Implementation
+    Core equation: h_t = A * h_{t-1} + B * x_t ; y_t = C * h_t
+    """
+
+    def __init__(self, config_path: str):
+        with open(config_path, 'r') as f:
+            self.config = yaml.safe_load(f)
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.state_vector = torch.zeros(self.config['model']['state_vector_size'], device=self.device)
+        self.sovereign_directive = self.config['sovereign_directive']
+
+        # Initialize Mamba model
+        self.mamba_model = Mamba(
+            d_model=self.config['model']['state_vector_size'],
+            d_state=16,
+            d_conv=4,
+            expand=2,
+        ).to(self.device)
+
+        # Setup logging
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger('LexNode')
+
+    def ingest_directive(self, bark_directive: str) -> str:
+        """
+        Ingest a BARK directive and compute state correction.
+        Returns the corrective action to minimize error.
+        """
+        # Tokenize input (simplified)
+        input_tokens = torch.tensor([ord(c) for c in bark_directive], dtype=torch.long, device=self.device).unsqueeze(0)
+
+        # Mamba forward pass
+        with torch.no_grad():
+            output, self.state_vector = self.mamba_model(input_tokens, self.state_vector)
+
+        # Calculate error (divergence from sovereign directive)
+        divergence = self._calculate_divergence(output, self.sovereign_directive)
+
+        if divergence > self.config['runtime']['error_threshold']:
+            # Force correction
+            corrective_action = self._correct_trajectory(output)
+            self.logger.info(f"Error detected (divergence: {divergence:.4f}). Correcting trajectory.")
+            return corrective_action
+        else:
+            # Accept the output
+            return self._generate_output(output)
+
+    def _calculate_divergence(self, output: torch.Tensor, reference: str) -> float:
+        """
+        Calculate entropy divergence from sovereign directive.
+        Simplified: cosine similarity as proxy for alignment.
+        """
+        # Simplified divergence calculation
+        ref_embedding = torch.tensor([ord(c) for c in reference[:len(output[0])]], dtype=torch.float, device=self.device)
+        similarity = torch.cosine_similarity(output.squeeze(), ref_embedding, dim=0)
+        return 1.0 - similarity.item()
+
+    def _correct_trajectory(self, output: torch.Tensor) -> str:
+        """
+        Generate corrective action to reduce divergence.
+        """
+        return f"Error: Directive violation detected. Corrective Action: Align with {self.sovereign_directive[:50]}..."
+
+    def _generate_output(self, output: torch.Tensor) -> str:
+        """
+        Generate final output from state.
+        """
+        # Simplified: convert tensor back to string
+        tokens = output.squeeze().cpu().numpy()
+        return ''.join([chr(int(token) % 256) for token in tokens])
+
+    def persist_state(self, path: str):
+        """
+        Persist the state vector to disk.
+        """
+        torch.save(self.state_vector, path)
+        self.logger.info(f"State persisted to {path}")
+
+    def load_state(self, path: str):
+        """
+        Load state vector from disk.
+        """
+        self.state_vector = torch.load(path, map_location=self.device)
+        self.logger.info(f"State loaded from {path}")

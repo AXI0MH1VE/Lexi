@@ -1,0 +1,118 @@
+# LEX-7 Architecture Configuration
+# The Error-State Lattice - Distributed Deterministic State-Space Swarm
+
+# System Configuration
+system:
+  name: "LEX-7"
+  version: "1.0.0"
+  mode: "distributed"  # single_node | distributed
+  debug: false
+  log_level: "INFO"
+
+# Hardware Configuration
+hardware:
+  target: "edge"  # edge | desktop | server
+  device: "auto"  # cpu | cuda | mps | auto
+  memory_limit_gb: 16
+  
+# Mamba-SSM Model Configuration
+model:
+  architecture: "mamba2"
+  parameters: "3b"  # 3b | 7b | 13b
+  context_length: "infinite"  # Due to recurrent state
+  hidden_size: 4096
+  num_layers: 24
+  ssm_cfg:
+    dt_rank: "auto"
+    d_conv: 4
+    expand: 2
+  loss_fn: "error_minimization"  # Changed from standard cross_entropy
+  
+# Lex Node Configuration
+lex_node:
+  node_type: "core"  # core | vitality | wealth | router
+  state_vector_size: 4096
+  learning_rate: 0.001
+  convergence_threshold: 0.01
+  max_iterations: 100
+  persistent_state: true
+  
+# Error Model Configuration
+error_model:
+  method: "kalman_filter"  # kalman_filter | pid | adaptive
+  state_noise: 0.01
+  measurement_noise: 0.1
+  divergence_threshold: 0.01
+  correction_gain: 1.0
+
+# Sovereign Directive Configuration
+sovereign:
+  validation_required: true
+  signature_verification: true
+  drift_detection: true
+  compliance_threshold: 0.95
+
+# Communication Protocol (BARK over Zenoh)
+communication:
+  protocol: "bark_zenoh"
+  discovery_port: 7447
+  message_port: 5555
+  heartbeat_interval: 30
+  timeout: 300
+  
+# P2P Network Configuration
+network:
+  topology: "mesh"  # star | mesh | ring
+  max_nodes: 256
+  gossip_frequency: 60
+  encryption: "srp"  # none | srpp | aes256
+  
+# Node-Specific Configurations
+nodes:
+  vitality:
+    hardware: "low_power"  # low_power | standard | high_performance
+    bio_sampling_rate: 1.0  # Hz
+    health_metrics: ["heart_rate", "sleep", "exercise", "nutrition"]
+    
+  wealth:
+    hardware: "standard"
+    update_frequency: 3600  # seconds
+    metrics: ["runway_months", "spending_rate", "investment_growth"]
+    
+  router:
+    hardware: "high_performance"
+    gpu_required: true
+    routing_table_size: 65536
+
+# Training Configuration
+training:
+  dataset: "axiom_hive"
+  fine_tuning_method: "lora"  # lora | qat | full_fine_tune
+  batch_size: 32
+  epochs: 100
+  validation_split: 0.2
+  checkpoint_frequency: 10
+
+# Runtime Configuration
+runtime:
+  rust_wrapper: true
+  ffi_enabled: true
+  hot_reload: false
+  state_persistence: true
+  crash_recovery: true
+  
+# Security Configuration
+security:
+  signing_algorithm: "ed25519"
+  encryption: "chacha20_poly1305"
+  key_rotation: 86400  # seconds
+  audit_logging: true
+  access_control: "rbac"
+
+# Monitoring Configuration
+monitoring:
+  metrics_collection: true
+  performance_tracking: true
+  error_logging: true
+  alerting: false  # for future implementation
+  dashboard: false
