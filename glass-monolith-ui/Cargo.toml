@@ -1,0 +1,29 @@
+[package]
+name = "glass-monolith-ui"
+version = "1.0.0"
+description = "Axiom Crucible Glass Monolith Desktop Interface"
+authors = ["Alexis M. Adams"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+tauri-build = { version = "1.0", features = [] }
+
+[dependencies]
+tauri = { version = "1.0", features = ["api-all"] }
+serde_json = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+
+[features]
+# This feature flag is used for production builds or when `devPath` points to the filesystem
+# DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+# Tauri runs in release mode by default - build optimized binaries with no debugging symbols
+opt-level = "s"
+lto = true
+panic = "abort"
+codegen-units = 1
