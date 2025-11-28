@@ -1,0 +1,39 @@
+{
+  "crucible_manifest": {
+    "version": "1.0.0",
+    "codename": "Glass Monolith",
+    "operator": "Alexis M. Adams",
+    "architecture": "Host-Guest-Hypervisor"
+  },
+  "host_config": {
+    "platform": "Tauri v2",
+    "window_style": "Transparent/Overlay",
+    "input_mode": "Global_Keyboard_Hook",
+    "security": "Strict_Sandbox"
+  },
+  "guest_vm_config": {
+    "engine": "Firecracker",
+    "vcpu_count": 4,
+    "memory_mb": 8192,
+    "kernel_image": "axiom-alpine-mamba.bin",
+    "network_mode": "VSOCK_ONLY"
+  },
+  "lattice_config": {
+    "model_type": "Mamba-2-2.8B-Quantized",
+    "nodes": [
+      "VIT", "WTH", "KNO", "CRT", "ORD", "KIN", 
+      "ENT", "GRW", "SAN", "LEI", "OUT", "LEG"
+    ],
+    "router_node": "MON_Analyst_L3",
+    "zero_entropy_enforcement": true
+  },
+  "ui_theme": {
+    "base": "Cyber-Brutalist",
+    "colors": {
+      "background": "#000000",
+      "text_primary": "#FFFFFF",
+      "accent_verified": "#FFD700",
+      "accent_error": "#FF0000"
+    }
+  }
+}

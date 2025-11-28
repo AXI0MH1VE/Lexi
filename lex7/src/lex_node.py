@@ -1,7 +1,28 @@
 import torch
-from mamba_ssm import Mamba
+import torch.nn as nn
 import yaml
 import logging
+
+try:
+    from mamba_ssm import Mamba  # type: ignore
+except ImportError:
+    class Mamba(nn.Module):
+        """
+        Minimal CPU-friendly stub when mamba-ssm wheels are unavailable (e.g., Windows).
+        Preserves the interface used by this LexNode: forward(x, state) -> (output, new_state).
+        """
+
+        def __init__(self, d_model: int, d_state: int = 16, d_conv: int = 4, expand: int = 2):
+            super().__init__()
+            self.embed = nn.Embedding(256, d_model)
+            self.state_linear = nn.Linear(d_model, d_model)
+
+        def forward(self, x: torch.Tensor, state: torch.Tensor):
+            # x: (batch, seq); state: (d_model,)
+            emb = self.embed(x).mean(dim=1)  # (batch, d_model)
+            new_state = torch.tanh(self.state_linear(emb) + state)
+            # Return shape compatible with caller expectations: (batch, d_model) output + 1D state
+            return new_state, new_state.squeeze(0)
 
 class LexNode:
     """
