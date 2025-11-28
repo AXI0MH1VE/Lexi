@@ -1,0 +1,11 @@
+[package]
+name = "lex-ord"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+bark-protocol = { path = "../../shared/communication" }
+serde_json = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+tokio = { version = "1.0", features = ["full"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }

@@ -1,0 +1,24 @@
+{
+  "build": {
+    "beforeDevCommand": "cargo run --package axiom-crucible",
+    "beforeBuildCommand": "cargo build --release --package axiom-crucible",
+    "devPath": "http://localhost:1420",
+    "distDir": "../dist",
+    "withGlobalTauri": true
+  },
+  "package": {
+    "productName": "Axiom Crucible",
+    "version": "1.0.0"
+  },
+  "tauri": {
+    "windows": [
+      {
+        "title": "Axiom Glass HUD",
+        "width": 800,
+        "height": 600,
+        "transparent": true,
+        "decorations": false
+      }
+    ]
+  }
+}

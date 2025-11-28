@@ -1,10 +1,12 @@
-[package]
+create[package]
 name = "axiom-crucible"
 version = "1.0.0"
 edition = "2021"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
+serde_json = "1.0"
+bark-protocol = { path = "shared/communication" }
 lex-mon = { path = "../../nodes/lex-mon" }
 lex-vit = { path = "../../nodes/lex-vit" }
 lex-wth = { path = "../../nodes/lex-wth" }
