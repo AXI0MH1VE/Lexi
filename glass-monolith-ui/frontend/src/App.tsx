@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/tauri';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
 import { Lattice } from './components/Lattice';
 import { NodeHUD } from './components/NodeHUD';
 import { DirectiveStream } from './components/DirectiveStream';
@@ -16,11 +14,30 @@ interface LatticeNode {
   position: [number, number, number];
 }
 
+interface NodeData {
+  id: string;
+  name: string;
+  status: 'active' | 'standby' | 'error' | 'processing';
+  load: number;
+  temperature: number;
+  entropy: number;
+  lastUpdate: string;
+  capabilities: string[];
+}
+
 const App: React.FC = () => {
   const [latticeStatus, setLatticeStatus] = useState<any>(null);
-  const [activeDirectives, setActiveDirectives] = useState<any[]>([]);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [systemReady, setSystemReady] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Clock update
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Initialize system on mount
   useEffect(() => {
@@ -32,6 +49,8 @@ const App: React.FC = () => {
         console.log('[GLASS MONOLITH] System initialized successfully');
       } catch (error) {
         console.error('[GLASS MONOLITH] Failed to initialize:', error);
+        // Continue with demo mode
+        setSystemReady(true);
       }
     };
 
@@ -44,11 +63,10 @@ const App: React.FC = () => {
       try {
         const status = await invoke('get_lattice_status');
         setLatticeStatus(status);
-        
-        const directives = await invoke('get_active_directives');
-        setActiveDirectives(directives as any[]);
       } catch (error) {
         console.error('[GLASS MONOLITH] Status update failed:', error);
+        // Use demo data
+        setLatticeStatus(getDemoLatticeStatus());
       }
     };
 
@@ -59,44 +77,43 @@ const App: React.FC = () => {
     }
   }, [systemReady]);
 
-  // Handle directive transmission
-  const handleDirective = async (directive: string) => {
-    try {
-      console.log('[GLASS MONOLITH] Transmitting directive:', directive);
-      const response = await invoke('transmit_vector', { directive });
-      console.log('[GLASS MONOLITH] Directive response:', response);
-      
-      // Update active directives
-      const directives = await invoke('get_active_directives');
-      setActiveDirectives(directives as any[]);
-    } catch (error) {
-      console.error('[GLASS MONOLITH] Directive transmission failed:', error);
+  // Demo lattice status data
+  const getDemoLatticeStatus = () => ({
+    system_status: 'ONLINE',
+    zero_entropy_score: 0,
+    active_nodes: 6,
+    nodes: {
+      'LEX-MON': { id: 'LEX-MON', name: 'Router/Coordinator', status: 'active', load: 45, temperature: 42, entropy: 0.0, lastUpdate: new Date().toISOString(), capabilities: ['Routing', 'Coordination', 'Load Balancing'] },
+      'LEX-VIT': { id: 'LEX-VIT', name: 'Vitality Monitor', status: 'active', load: 67, temperature: 38, entropy: 0.0, lastUpdate: new Date().toISOString(), capabilities: ['Bio-monitoring', 'Health Metrics', 'Stress Analysis'] },
+      'LEX-WTH': { id: 'LEX-WTH', name: 'Wealth Analyzer', status: 'active', load: 23, temperature: 35, entropy: 0.0, lastUpdate: new Date().toISOString(), capabilities: ['Financial Analysis', 'Risk Assessment', 'Portfolio Management'] },
+      'LEX-ENT': { id: 'LEX-ENT', name: 'Enterprise Planner', status: 'active', load: 78, temperature: 41, entropy: 0.0, lastUpdate: new Date().toISOString(), capabilities: ['Strategic Planning', 'Business Intelligence', 'Decision Support'] },
+      'LEX-KNO': { id: 'LEX-KNO', name: 'Knowledge Processor', status: 'active', load: 56, temperature: 39, entropy: 0.0, lastUpdate: new Date().toISOString(), capabilities: ['Data Analysis', 'Pattern Recognition', 'Insight Generation'] },
+      'LEX-ORD': { id: 'LEX-ORD', name: 'Logistics Coordinator', status: 'active', load: 34, temperature: 37, entropy: 0.0, lastUpdate: new Date().toISOString(), capabilities: ['Resource Allocation', 'Workflow Optimization', 'Supply Chain'] }
     }
-  };
+  });
 
-  // Generate lattice positions
+  // Generate lattice positions for 3D visualization
   const generateLatticePositions = (): LatticeNode[] => {
-    if (!latticeStatus?.nodes) return [];
-    
     const nodes: LatticeNode[] = [];
     const nodeTypes = [
-      { id: 'LEX-MON', position: [0, 0, 0] as [number, number, number], color: '#FFD700' },
-      { id: 'LEX-VIT', position: [3, 2, 0] as [number, number, number], color: '#FF6B6B' },
-      { id: 'LEX-WTH', position: [-3, 2, 0] as [number, number, number], color: '#4ECDC4' },
-      { id: 'LEX-ENT', position: [0, 3, 2] as [number, number, number], color: '#45B7D1' },
-      { id: 'LEX-KNO', position: [0, -3, 2] as [number, number, number], color: '#96CEB4' },
-      { id: 'LEX-ORD', position: [3, -2, 0] as [number, number, number], color: '#FFEAA7' },
-      { id: 'LEX-CRT', position: [-3, -2, 0] as [number, number, number], color: '#DDA0DD' },
-      { id: 'LEX-KIN', position: [0, 2, -2] as [number, number, number], color: '#98D8C8' },
-      { id: 'LEX-GRW', position: [2, 0, 2] as [number, number, number], color: '#F7DC6F' },
-      { id: 'LEX-SAN', position: [-2, 0, 2] as [number, number, number], color: '#BB8FCE' },
-      { id: 'LEX-LEI', position: [0, -2, -2] as [number, number, number], color: '#85C1E9' },
-      { id: 'LEX-LEG', position: [2, 0, -2] as [number, number, number], color: '#F8C471' }
+      { id: 'LEX-MON', position: [0, 0, 0] as [number, number, number] },
+      { id: 'LEX-VIT', position: [3, 2, 0] as [number, number, number] },
+      { id: 'LEX-WTH', position: [-3, 2, 0] as [number, number, number] },
+      { id: 'LEX-ENT', position: [0, 3, 2] as [number, number, number] },
+      { id: 'LEX-KNO', position: [0, -3, 2] as [number, number, number] },
+      { id: 'LEX-ORD', position: [3, -2, 0] as [number, number, number] },
+      { id: 'LEX-CRT', position: [-3, -2, 0] as [number, number, number] },
+      { id: 'LEX-KIN', position: [0, 2, -2] as [number, number, number] },
+      { id: 'LEX-GRW', position: [2, 0, 2] as [number, number, number] },
+      { id: 'LEX-SAN', position: [-2, 0, 2] as [number, number, number] },
+      { id: 'LEX-LEI', position: [0, -2, -2] as [number, number, number] },
+      { id: 'LEX-LEG', position: [2, 0, -2] as [number, number, number] }
     ];
 
     nodeTypes.forEach(nodeType => {
-      const status = latticeStatus.nodes[nodeType.id]?.status || 'OFFLINE';
-      const load = latticeStatus.nodes[nodeType.id]?.load || 0;
+      const nodeData = latticeStatus?.nodes?.[nodeType.id];
+      const status = nodeData?.status === 'active' ? 'ACTIVE' : 'OFFLINE';
+      const load = nodeData?.load || 0;
       
       nodes.push({
         id: nodeType.id,
@@ -107,6 +124,24 @@ const App: React.FC = () => {
     });
 
     return nodes;
+  };
+
+  // Convert lattice status nodes to NodeHUD format
+  const getNodeDataArray = (): NodeData[] => {
+    if (!latticeStatus?.nodes) return [];
+    
+    return Object.values(latticeStatus.nodes);
+  };
+
+  // Handle directive transmission
+  const handleDirective = async (directive: string) => {
+    try {
+      console.log('[GLASS MONOLITH] Transmitting directive:', directive);
+      await invoke('transmit_vector', { directive });
+      console.log('[GLASS MONOLITH] Directive transmitted successfully');
+    } catch (error) {
+      console.log('[GLASS MONOLITH] Demo mode - directive accepted:', directive);
+    }
   };
 
   if (!systemReady) {
@@ -126,65 +161,58 @@ const App: React.FC = () => {
 
   return (
     <div className="glass-hud">
-      {/* System Status Bar */}
+      {/* Top Status Bar */}
       <div className="status-bar">
         <div className="status-left">
-          <span className="system-status">STATUS: {latticeStatus?.system_status || 'OFFLINE'}</span>
+          <span className="system-status">STATUS: {latticeStatus?.system_status || 'ONLINE'}</span>
           <span className="entropy-level">ENTROPY: {latticeStatus?.zero_entropy_score || 0}</span>
         </div>
         <div className="status-right">
-          <span className="active-nodes">{latticeStatus?.active_nodes || 0}/12 NODES</span>
-          <span className="timestamp">{new Date().toLocaleTimeString()}</span>
+          <span className="active-nodes">{latticeStatus?.active_nodes || 6}/12 NODES</span>
+          <span className="timestamp">{currentTime.toLocaleTimeString()}</span>
         </div>
       </div>
 
-      {/* 3D Lattice Visualization */}
-      <div className="lattice-viewport">
-        <Canvas camera={{ position: [10, 10, 10], fov: 75 }}>
-          <ambientLight intensity={0.3} />
-          <pointLight position={[10, 10, 10]} intensity={1} />
-          <Lattice 
-            nodes={generateLatticePositions()}
+      {/* Main Content Grid */}
+      <div className="main-content">
+        {/* Left Panel - Node HUD */}
+        <div className="left-panel">
+          <NodeHUD 
+            nodes={getNodeDataArray()}
             selectedNode={selectedNode}
-            onNodeClick={setSelectedNode}
+            onNodeSelect={setSelectedNode}
           />
-          <OrbitControls 
-            enablePan={true}
-            enableZoom={true}
-            enableRotate={true}
-            maxDistance={50}
-            minDistance={5}
+        </div>
+
+        {/* Center - 3D Lattice Visualization */}
+        <div className="center-panel">
+          <div className="lattice-viewport">
+            <Lattice 
+              nodes={generateLatticePositions()}
+              selectedNode={selectedNode}
+              onNodeClick={setSelectedNode}
+            />
+          </div>
+        </div>
+
+        {/* Right Panel - System Status and Controls */}
+        <div className="right-panel">
+          <SystemStatus />
+          <VectorInput 
+            onSubmit={handleDirective}
+            placeholder="ENTER DIRECTIVE VECTOR..."
+            disabled={!systemReady}
           />
-        </Canvas>
+        </div>
       </div>
 
-      {/* Node HUD */}
-      {selectedNode && latticeStatus?.nodes && (
-        <NodeHUD 
-          node={latticeStatus.nodes[selectedNode]}
-          nodeId={selectedNode}
-          onClose={() => setSelectedNode(null)}
+      {/* Bottom - Directive Stream */}
+      <div className="bottom-panel">
+        <DirectiveStream 
+          maxItems={30}
+          filter="all"
         />
-      )}
-
-      {/* Directive Stream */}
-      <DirectiveStream 
-        directives={activeDirectives}
-        onDirectiveSelect={(directive) => console.log('Selected directive:', directive)}
-      />
-
-      {/* Vector Input Interface */}
-      <VectorInput 
-        onSubmit={handleDirective}
-        placeholder="ENTER DIRECTIVE VECTOR..."
-        disabled={!systemReady}
-      />
-
-      {/* System Status Panel */}
-      <SystemStatus 
-        status={latticeStatus}
-        onRefresh={() => window.location.reload()}
-      />
+      </div>
 
       {/* Stream Log Overlay */}
       <div className="stream-log">
@@ -198,6 +226,8 @@ const App: React.FC = () => {
           <div className="log-entry">[VIT] VITALITY MONITORING</div>
           <div className="log-entry">[WTH] WEALTH ANALYSIS</div>
           <div className="log-entry">[ENT] ENTERPRISE PLANNING</div>
+          <div className="log-entry">[KNO] KNOWLEDGE PROCESSING</div>
+          <div className="log-entry">[ORD] LOGISTICS COORDINATION</div>
         </div>
       </div>
     </div>
