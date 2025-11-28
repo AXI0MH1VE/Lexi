@@ -202,7 +202,7 @@ class AxiomEnforcer:
             if emergency_fund_months < required_months:
                 return {
                     "compliant": False,
-                    "details": f"Emergency fund ({emergency_fund_months:.1f} months) below required ({required_monthf} months)",
+                    "details": f"Emergency fund ({emergency_fund_months:.1f} months) below required ({required_months} months)",
                     "suggestions": [
                         f"Prioritize building emergency fund to {required_months} months",
                         "Reduce non-essential spending",

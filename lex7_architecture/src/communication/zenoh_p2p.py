@@ -12,6 +12,7 @@ import hashlib
 from typing import Dict, Any, Optional, List, Callable, Set
 from dataclasses import dataclass, asdict
 from pathlib import Path
+from enum import Enum
 import logging
 
 # Zenoh imports (would be actual zenoh library in production)
