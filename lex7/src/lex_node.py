@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import yaml
 import logging
 
@@ -79,9 +80,21 @@ class LexNode:
         Calculate entropy divergence from sovereign directive.
         Simplified: cosine similarity as proxy for alignment.
         """
-        # Simplified divergence calculation
-        ref_embedding = torch.tensor([ord(c) for c in reference[:len(output[0])]], dtype=torch.float, device=self.device)
-        similarity = torch.cosine_similarity(output.squeeze(), ref_embedding, dim=0)
+        out_vec = output.flatten()
+        target_len = out_vec.numel()
+
+        ref_codes = [ord(c) for c in reference[:target_len]]
+        ref_embedding = torch.zeros(target_len, device=self.device)
+        ref_embedding[: len(ref_codes)] = torch.tensor(ref_codes, dtype=torch.float, device=self.device)
+
+        # Align lengths
+        if out_vec.numel() < target_len:
+            pad = torch.zeros(target_len - out_vec.numel(), device=self.device)
+            out_vec = torch.cat([out_vec, pad])
+        else:
+            out_vec = out_vec[:target_len]
+
+        similarity = F.cosine_similarity(out_vec, ref_embedding, dim=0)
         return 1.0 - similarity.item()
 
     def _correct_trajectory(self, output: torch.Tensor) -> str:
