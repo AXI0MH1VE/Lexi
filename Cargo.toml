@@ -1,11 +1,10 @@
 [package]
-name = "bark-protocol"
-version = "3.1.0"
-name = "lex-wth"
+name = "axiom-crucible"
 version = "1.0.0"
 edition = "2021"
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
-bark-protocol = { path = "../../shared/communication" }
-serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+lex-mon = { path = "../../nodes/lex-mon" }
+lex-vit = { path = "../../nodes/lex-vit" }
+lex-wth = { path = "../../nodes/lex-wth" }
