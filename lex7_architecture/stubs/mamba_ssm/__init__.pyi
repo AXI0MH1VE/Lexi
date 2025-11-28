@@ -1,0 +1,6 @@
+from typing import Tuple
+import torch
+
+class Mamba(torch.nn.Module):
+    def __init__(self, d_model: int, d_state: int = ..., d_conv: int = ..., expand: int = ...) -> None: ...
+    def forward(self, x: torch.Tensor, state: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]: ...

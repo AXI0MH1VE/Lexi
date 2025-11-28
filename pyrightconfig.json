@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/pyright/main/packages/pyright-internal/src/pyright-internal/schemas/pyrightconfig.schema.json",
+  "include": [
+    "lex7",
+    "lex7_architecture"
+  ],
+  "extraPaths": [
+    "lex7/env/Lib/site-packages"
+  ],
+  "stubPath": "lex7_architecture/stubs",
+  "reportMissingImports": true
+}

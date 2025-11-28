@@ -1,0 +1,7 @@
+{
+  "python.defaultInterpreterPath": "d:/lex7/env/Scripts/python.exe",
+  "python.analysis.extraPaths": [
+    "lex7/env/Lib/site-packages"
+  ],
+  "python.analysis.stubPath": "lex7_architecture/stubs"
+}
